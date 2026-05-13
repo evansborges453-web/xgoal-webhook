@@ -1,4 +1,4 @@
-import mercadopago, requests, os, uuid
+import mercadopago, requests, os
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
@@ -6,9 +6,16 @@ MP_TOKEN = os.environ.get("MP_TOKEN")
 TG_TOKEN = os.environ.get("TG_TOKEN")
 TG_VIP = os.environ.get("TG_VIP")
 
-def tg_send(token, chat_id, text):
-    requests.post(f"https://api.telegram.org/bot{token}/sendMessage",
+def tg_send(chat_id, text):
+    requests.post(f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage",
         json={"chat_id": chat_id, "text": text, "parse_mode": "HTML"})
+
+def tg_invite_link(chat_id):
+    r = requests.post(f"https://api.telegram.org/bot{TG_TOKEN}/createChatInviteLink",
+        json={"chat_id": chat_id, "member_limit": 1})
+    if r.json().get("ok"):
+        return r.json()["result"]["invite_link"]
+    return None
 
 @app.route("/pix", methods=["POST"])
 def criar_pix():
@@ -29,9 +36,8 @@ def criar_pix():
     if result["status"] == 201:
         qr = pay["point_of_interaction"]["transaction_data"]["qr_code"]
         qr_img = pay["point_of_interaction"]["transaction_data"]["qr_code_base64"]
-        pay_id = pay["id"]
-        return jsonify({"ok": True, "qr_code": qr, "qr_img": qr_img, "payment_id": pay_id})
-    return jsonify({"ok": False, "error": pay}), 400
+        return jsonify({"ok": True, "qr_code": qr, "qr_img": qr_img, "payment_id": pay["id"]})
+    return jsonify({"ok": False, "error": str(pay)}), 400
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
@@ -46,7 +52,12 @@ def webhook():
                 if pay.get("status") == "approved":
                     user_id = pay.get("external_reference", "")
                     email = pay.get("payer", {}).get("email", "")
-                    tg_send(TG_TOKEN, TG_VIP, f"✅ Pagamento aprovado!\nUser: {user_id}\nEmail: {email}")
+                    # Gerar link VIP unico
+                    link = tg_invite_link(TG_VIP)
+                    if link and user_id:
+                        tg_send(user_id, f"Pagamento aprovado! Acesse o canal VIP:\n{link}")
+                    # Notificar grupo
+                    tg_send(TG_VIP, f"Novo membro VIP!\nEmail: {email}\nUser ID: {user_id}")
             except Exception as e:
                 print(f"Webhook erro: {e}")
     return jsonify({"ok": True})
