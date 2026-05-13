@@ -293,9 +293,9 @@ const observer=new IntersectionObserver((entries)=>{entries.forEach(e=>{if(e.isI
 document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
 </script>
 <script>
-function openModal(){document.getElementById("modal").classList.add("open")}
-function closeModal(){document.getElementById("modal").classList.remove("open")}
-function closeModalOutside(e){if(e.target===document.getElementById("modal"))closeModal()}
+
+
+
 const observer=new IntersectionObserver((entries)=>{entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add("visible")})},{threshold:0.1});
 document.querySelectorAll(".reveal").forEach(el=>observer.observe(el));
 </script>
