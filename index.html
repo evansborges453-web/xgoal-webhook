@@ -215,88 +215,76 @@ footer{padding:32px 24px;border-top:1px solid var(--border);text-align:center;fo
     </div>
   </div>
 </div>
+
+
 <script>
-var plataformaSelecionada = '';
-var pixCode = '';
-
-function openModal(type){document.getElementById('modal').classList.add('open');
+var plataformaSelecionada='';
+var pixCode='';
+function openModal(type){
   document.getElementById('modal').classList.add('open');
-  if(type==='trial'){
-    showStep('trial');
-  } else {
-    showStep('plataforma');
-  }
+  if(type==='trial'){showStep('trial');}
+  else{showStep('plataforma');}
 }
-function closeModal(){document.getElementById('modal').classList.remove('open')}
-function closeModalOutside(e){if(e.target===document.getElementById('modal'))closeModal()}
-
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+function closeModalOutside(e){if(e.target===document.getElementById('modal'))closeModal();}
 function showStep(step){
-  ['plataforma','trial','pix','qr'].forEach(function(s){
-    document.getElementById('step-'+s).style.display='none';
-  });
+  var steps=['plataforma','trial','pix','qr'];
+  for(var i=0;i<steps.length;i++){
+    document.getElementById('step-'+steps[i]).style.display='none';
+  }
   document.getElementById('step-'+step).style.display='block';
 }
-
 function escolherPlataforma(p){
-  plataformaSelecionada = p;
-  var links = document.getElementById('trial-links');
-  links.innerHTML = '';
+  plataformaSelecionada=p;
+  var links=document.getElementById('trial-links');
+  links.innerHTML='';
   if(p==='telegram'||p==='ambos'){
-    links.innerHTML += '<a href="https://t.me/xgoalpro_bot" class="platform-btn platform-tg" target="_blank">📱 Acessar Telegram</a>';
+    links.innerHTML+='<a href="https://t.me/xgoalpro_bot" class="platform-btn platform-tg" target="_blank">📱 Acessar Telegram</a>';
   }
   if(p==='discord'||p==='ambos'){
-    links.innerHTML += '<a href="https://discord.gg/HCxn8P6g7W" class="platform-btn platform-dc" target="_blank">🎮 Acessar Discord</a>';
+    links.innerHTML+='<a href="https://discord.gg/HCxn8P6g7W" class="platform-btn platform-dc" target="_blank">🎮 Acessar Discord</a>';
   }
-  links.innerHTML += '<button class="platform-btn" style="background:rgba(0,230,118,0.15);color:#00E676;border:1px solid #00E676;margin-top:8px" onclick="showStep('pix')">💳 Quero assinar VIP R$29,90</button>';
+  links.innerHTML+='<button class="platform-btn" style="background:rgba(0,230,118,0.15);color:#00E676;border:1px solid #00E676;margin-top:8px" onclick="showStep('pix')">💳 Assinar VIP R$29,90</button>';
   showStep('trial');
 }
-
 function gerarPix(){
-  var email = document.getElementById('pix-email').value;
+  var email=document.getElementById('pix-email').value;
   if(!email||!email.includes('@')){alert('Digite um e-mail válido');return;}
-  var btn = document.getElementById('btn-pix');
-  btn.textContent = 'Gerando...';
-  btn.disabled = true;
-  fetch('/pix', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({email: email, user_id: email, plataforma: plataformaSelecionada})
-  })
-  .then(function(r){return r.json()})
+  var btn=document.getElementById('btn-pix');
+  btn.textContent='Gerando...';
+  btn.disabled=true;
+  fetch('/pix',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,user_id:email,plataforma:plataformaSelecionada})})
+  .then(function(r){return r.json();})
   .then(function(d){
     if(d.ok){
-      document.getElementById('qr-img').src = 'data:image/png;base64,'+d.qr_img;
-      document.getElementById('qr-code-text').textContent = d.qr_code;
-      pixCode = d.qr_code;
+      document.getElementById('qr-img').src='data:image/png;base64,'+d.qr_img;
+      document.getElementById('qr-code-text').textContent=d.qr_code;
+      pixCode=d.qr_code;
       showStep('qr');
-    } else {
+    }else{
       alert('Erro ao gerar Pix. Tente novamente.');
-      btn.textContent = 'Gerar QR Code Pix';
-      btn.disabled = false;
+      btn.textContent='Gerar QR Code Pix';
+      btn.disabled=false;
     }
   })
   .catch(function(){
-    alert('Erro de conexão. Tente novamente.');
-    btn.textContent = 'Gerar QR Code Pix';
-    btn.disabled = false;
+    alert('Erro de conexão.');
+    btn.textContent='Gerar QR Code Pix';
+    btn.disabled=false;
   });
 }
-
 function copiarPix(){
-  navigator.clipboard.writeText(pixCode).then(function(){
-    alert('Código Pix copiado!');
-  });
+  navigator.clipboard.writeText(pixCode).then(function(){alert('Código copiado!');});
 }
-
-function toggleFaq(btn){const item=btn.parentElement;const isOpen=item.classList.contains('open');document.querySelectorAll('.faq-item').forEach(i=>i.classList.remove('open'));if(!isOpen)item.classList.add('open')}
-const observer=new IntersectionObserver((entries)=>{entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')})},{threshold:0.1});
-document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
-</script>
-<script>
-
-
-
-const observer=new IntersectionObserver((entries)=>{entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add("visible")})},{threshold:0.1});
-document.querySelectorAll(".reveal").forEach(el=>observer.observe(el));
-</script>
-</body></html>
+function toggleFaq(btn){
+  var item=btn.parentElement;
+  var isOpen=item.classList.contains('open');
+  var items=document.querySelectorAll('.faq-item');
+  for(var i=0;i<items.length;i++){items[i].classList.remove('open');}
+  if(!isOpen)item.classList.add('open');
+}
+var observer=new IntersectionObserver(function(entries){
+  entries.forEach(function(e){if(e.isIntersecting)e.target.classList.add('visible');});
+},{threshold:0.1});
+document.querySelectorAll('.reveal').forEach(function(el){observer.observe(el);});
+</script></body></html>
