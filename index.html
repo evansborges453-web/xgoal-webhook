@@ -219,7 +219,7 @@ footer{padding:32px 24px;border-top:1px solid var(--border);text-align:center;fo
 var plataformaSelecionada = '';
 var pixCode = '';
 
-function openModal(type){
+function openModal(type){document.getElementById('modal').classList.add('open');
   document.getElementById('modal').classList.add('open');
   if(type==='trial'){
     showStep('trial');
