@@ -180,16 +180,118 @@ footer{padding:32px 24px;border-top:1px solid var(--border);text-align:center;fo
 </section>
 <footer><p>© 2026 XGoal Signals PRO · Todos os direitos reservados · Aposte com responsabilidade</p></footer>
 <div class="modal-overlay" id="modal" onclick="closeModalOutside(event)">
-  <div class="modal">
-    <h3>ESCOLHA A PLATAFORMA</h3>
-    <p>Selecione onde deseja receber os sinais. Você pode usar as duas!</p>
-    <div class="platform-btns">
-      <a href="https://t.me/xgoalpro_bot" class="platform-btn platform-tg" target="_blank">📱 Telegram</a>
-      <a href="https://discord.gg/HCxn8P6g7W" class="platform-btn platform-dc" target="_blank">🎮 Discord</a>
+  <div class="modal" id="modal-box">
+    <div id="step-plataforma">
+      <h3>ESCOLHA A PLATAFORMA</h3>
+      <p>Selecione onde deseja receber os sinais.</p>
+      <div class="platform-btns">
+        <button class="platform-btn platform-tg" onclick="escolherPlataforma('telegram')">📱 Telegram</button>
+        <button class="platform-btn platform-dc" onclick="escolherPlataforma('discord')">🎮 Discord</button>
+        <button class="platform-btn" style="background:rgba(0,230,118,0.15);color:#00E676;border:1px solid #00E676" onclick="escolherPlataforma('ambos')">✅ Ambos</button>
+      </div>
+      <button class="modal-close" onclick="closeModal()">Fechar</button>
     </div>
-    <button class="modal-close" onclick="closeModal()">Fechar</button>
+    <div id="step-trial" style="display:none">
+      <h3>TRIAL GRATUITO</h3>
+      <p>7 dias grátis. Clique abaixo para acessar:</p>
+      <div class="platform-btns" id="trial-links"></div>
+      <button class="modal-close" onclick="closeModal()">Fechar</button>
+    </div>
+    <div id="step-pix" style="display:none">
+      <h3>PAGAR COM PIX</h3>
+      <p>R$ 29,90/mês · Acesso liberado em segundos</p>
+      <input type="email" id="pix-email" placeholder="Seu e-mail" style="width:100%;padding:12px;border-radius:6px;border:1px solid rgba(0,230,118,0.3);background:rgba(0,0,0,0.3);color:#E8F5E9;font-size:0.95rem;margin-bottom:12px;outline:none">
+      <button class="btn btn-primary btn-full" onclick="gerarPix()" id="btn-pix">Gerar QR Code Pix</button>
+      <button class="modal-close" onclick="closeModal()" style="margin-top:12px">Fechar</button>
+    </div>
+    <div id="step-qr" style="display:none;text-align:center">
+      <h3 style="margin-bottom:8px">ESCANEIE O QR CODE</h3>
+      <p style="margin-bottom:16px">Abra seu banco e escaneie ou copie o código</p>
+      <img id="qr-img" src="" style="width:200px;height:200px;border-radius:8px;margin-bottom:16px">
+      <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(0,230,118,0.2);border-radius:6px;padding:10px;margin-bottom:12px;word-break:break-all;font-size:0.72rem;color:#00E676;max-height:80px;overflow:auto" id="qr-code-text"></div>
+      <button class="btn btn-primary btn-full" onclick="copiarPix()">📋 Copiar código Pix</button>
+      <p style="font-size:0.78rem;color:rgba(232,245,233,0.5);margin-top:12px">Após o pagamento seu acesso será liberado automaticamente</p>
+      <button class="modal-close" onclick="closeModal()" style="margin-top:8px">Fechar</button>
+    </div>
   </div>
 </div>
+<script>
+var plataformaSelecionada = '';
+var pixCode = '';
+
+function openModal(type){
+  document.getElementById('modal').classList.add('open');
+  if(type==='trial'){
+    showStep('trial');
+  } else {
+    showStep('plataforma');
+  }
+}
+function closeModal(){document.getElementById('modal').classList.remove('open')}
+function closeModalOutside(e){if(e.target===document.getElementById('modal'))closeModal()}
+
+function showStep(step){
+  ['plataforma','trial','pix','qr'].forEach(function(s){
+    document.getElementById('step-'+s).style.display='none';
+  });
+  document.getElementById('step-'+step).style.display='block';
+}
+
+function escolherPlataforma(p){
+  plataformaSelecionada = p;
+  var links = document.getElementById('trial-links');
+  links.innerHTML = '';
+  if(p==='telegram'||p==='ambos'){
+    links.innerHTML += '<a href="https://t.me/xgoalpro_bot" class="platform-btn platform-tg" target="_blank">📱 Acessar Telegram</a>';
+  }
+  if(p==='discord'||p==='ambos'){
+    links.innerHTML += '<a href="https://discord.gg/HCxn8P6g7W" class="platform-btn platform-dc" target="_blank">🎮 Acessar Discord</a>';
+  }
+  links.innerHTML += '<button class="platform-btn" style="background:rgba(0,230,118,0.15);color:#00E676;border:1px solid #00E676;margin-top:8px" onclick="showStep('pix')">💳 Quero assinar VIP R$29,90</button>';
+  showStep('trial');
+}
+
+function gerarPix(){
+  var email = document.getElementById('pix-email').value;
+  if(!email||!email.includes('@')){alert('Digite um e-mail válido');return;}
+  var btn = document.getElementById('btn-pix');
+  btn.textContent = 'Gerando...';
+  btn.disabled = true;
+  fetch('/pix', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({email: email, user_id: email, plataforma: plataformaSelecionada})
+  })
+  .then(function(r){return r.json()})
+  .then(function(d){
+    if(d.ok){
+      document.getElementById('qr-img').src = 'data:image/png;base64,'+d.qr_img;
+      document.getElementById('qr-code-text').textContent = d.qr_code;
+      pixCode = d.qr_code;
+      showStep('qr');
+    } else {
+      alert('Erro ao gerar Pix. Tente novamente.');
+      btn.textContent = 'Gerar QR Code Pix';
+      btn.disabled = false;
+    }
+  })
+  .catch(function(){
+    alert('Erro de conexão. Tente novamente.');
+    btn.textContent = 'Gerar QR Code Pix';
+    btn.disabled = false;
+  });
+}
+
+function copiarPix(){
+  navigator.clipboard.writeText(pixCode).then(function(){
+    alert('Código Pix copiado!');
+  });
+}
+
+function toggleFaq(btn){const item=btn.parentElement;const isOpen=item.classList.contains('open');document.querySelectorAll('.faq-item').forEach(i=>i.classList.remove('open'));if(!isOpen)item.classList.add('open')}
+const observer=new IntersectionObserver((entries)=>{entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')})},{threshold:0.1});
+document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
+</script>
 <script>
 function openModal(){document.getElementById("modal").classList.add("open")}
 function closeModal(){document.getElementById("modal").classList.remove("open")}
