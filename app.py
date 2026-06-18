@@ -1,10 +1,26 @@
-import mercadopago, requests, os
+import mercadopago, requests, os, json
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 MP_TOKEN = os.environ.get("MP_TOKEN")
 TG_TOKEN = os.environ.get("TG_TOKEN")
-TG_VIP = os.environ.get("TG_VIP")
+TG_VIP   = os.environ.get("TG_VIP")
+
+PROCESSED_FILE = "/tmp/processed_payments.json"
+
+def _load_processed():
+    try:
+        return set(json.load(open(PROCESSED_FILE)))
+    except Exception:
+        return set()
+
+def _save_processed(s):
+    try:
+        json.dump(list(s), open(PROCESSED_FILE, "w"))
+    except Exception:
+        pass
+
+processed_payments = _load_processed()
 
 def tg_send(chat_id, text):
     requests.post(f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage",
@@ -41,22 +57,27 @@ def criar_pix():
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    data = request.json or {}
+    global processed_payments
+    data  = request.json or {}
     topic = data.get("type") or request.args.get("topic", "")
     if topic == "payment":
         pay_id = data.get("data", {}).get("id") or request.args.get("id")
         if pay_id:
+            pay_id_str = str(pay_id)
+            if pay_id_str in processed_payments:
+                print(f"[WEBHOOK] payment_id {pay_id_str} ja processado, ignorando.")
+                return jsonify({"ok": True, "skipped": True})
             try:
                 sdk = mercadopago.SDK(MP_TOKEN)
                 pay = sdk.payment().get(pay_id)["response"]
                 if pay.get("status") == "approved":
                     user_id = pay.get("external_reference", "")
-                    email = pay.get("payer", {}).get("email", "")
-                    # Gerar link VIP unico
+                    email   = pay.get("payer", {}).get("email", "")
+                    processed_payments.add(pay_id_str)
+                    _save_processed(processed_payments)
                     link = tg_invite_link(TG_VIP)
                     if link and user_id:
                         tg_send(user_id, f"Pagamento aprovado! Acesse o canal VIP:\n{link}")
-                    # Notificar grupo
                     tg_send(TG_VIP, f"Novo membro VIP!\nEmail: {email}\nUser ID: {user_id}")
             except Exception as e:
                 print(f"Webhook erro: {e}")
